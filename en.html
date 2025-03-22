@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Online Python Runner</title>
+    <link rel="icon" href="icon.jpg" type="image/jpeg">
+    <style>
+        body {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(-45deg, #f5f7fa, #c3cfe2, #f8f9fa);
+            background-size: 400% 400%;
+            animation: colorPulse 15s ease infinite;
+        }
+        #editor {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            font-family: monospace;
+            margin: 10px 0;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center top;
+        }
+        #editor:focus {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        #output {
+            width: 100%;
+            height: 200px;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            background: #2c3e50;
+            color: #ecf0f1;
+            border: 2px solid #34495e;
+            border-radius: 8px;
+            resize: vertical;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            transition: box-shadow 0.3s ease;
+        }
+        #output:focus {
+            box-shadow: 0 0 15px rgba(76,175,80,0.2);
+        }
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            transform-origin: center;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .dependency-box {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            perspective: 1000px;
+        }
+        .dependency-box button {
+            transition: all 0.3s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .dependency-box button:hover {
+            transform: rotateY(10deg) scale(1.05);
+        }
+        #packageInput {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Fira Code', monospace;
+        }
+        #packageInput:focus {
+            border-color: #2196F3;
+            outline: none;
+        }
+        .error-box {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .error-header {
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .error-type {
+            font-family: monospace;
+            margin: 5px 0;
+        }
+        .error-message {
+            white-space: pre-wrap;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .execution-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 8px;
+        }
+        .system-info {
+            margin-top: 15px;
+            color: #6c757d;
+        }
+        .clear-btn {
+            background: #f44336 !important;
+            transition: transform 0.2s ease;
+        }
+        .clear-btn:hover {
+            background: #d32f2f !important;
+            transform: scale(1.05);
+        }
+        .author-info {
+            text-align: center;
+            margin-top: 20px;
+            color: #95a5a6;
+            font-size: 0.9em;
+            opacity: 0.8;
+            animation: fadeIn 1s ease;
+        }
+        .author-name {
+            color: #4CAF50;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(76,175,80,0.2);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 0.8; }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
+        }
+        .tool-links {
+            text-align: center;
+            margin: 20px 0;
+            animation: fadeIn 1s ease;
+        }
+        .tool-btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: linear-gradient(45deg, #2196F3, #4CAF50);
+            color: white !important;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(33,150,243,0.3);
+            animation: float 3s ease-in-out infinite;
+        }
+        .tool-btn:hover {
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 6px 20px rgba(33,150,243,0.4);
+        }
+        @keyframes colorPulse {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .intro-box {
+            background: rgba(255,255,255,0.95);
+            padding: 25px;
+            border-radius: 16px;
+            margin: 30px 0;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .intro-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin: 20px 0;
+        }
+        .intro-column h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #4CAF50;
+        }
+        .system-requirements {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 4px solid #2196F3;
+        }
+        .system-requirements h3 {
+            color: #2196F3;
+            margin-bottom: 12px;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .intro-box {
+            animation: slideUp 0.8s ease;
+        }
+        .example-box {
+            margin: 15px 0;
+        }
+        #exampleSelect {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            background: white;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+        .package-tip {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .package-list {
+            color: #2196F3;
+            font-weight: 500;
+        }
+        .more-packages {
+            color: #4CAF50;
+            margin-left: 10px;
+            text-decoration: none;
+            border-bottom: 1px dashed;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .example-loaded {
+            animation: slideIn 0.3s ease;
+        }
+        .lang-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: fadeIn 0.6s ease;
+        }
+        
+        .lang-btn {
+            padding: 8px 15px;
+            border: 2px solid #4CAF50;
+            border-radius: 20px;
+            background: white;
+            color: #2c3e50;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+        }
+        
+        .lang-btn:hover {
+            background: #4CAF50;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(76,175,80,0.2);
+        }
+        
+        .lang-icon {
+            font-size: 16px;
+        }
+        
+        .active-lang {
+            background: #4CAF50;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Online Python Runner</h1>
+        <div class="example-box">
+            <select id="exampleSelect" onchange="loadExample()">
+                <option value="">Select example code...</option>
+                <option value="hello">Basic Example - Hello World</option>
+                <option value="math">Math - Basic Operations</option>
+                <option value="fib">Math - Fibonacci Sequence</option>
+                <option value="prime">Math - Prime Number Check</option>
+            </select>
+        </div>
+        <textarea id="editor" placeholder="Enter Python code...">
+# Simple calculation example
+a = 5
+b = 3
+print(f"{a} + {b} = {a + b}")
+print(f"{a} × {b} = {a * b}")</textarea>
+        <button onclick="runPython()">Run Code</button>
+        <div class="dependency-box">
+            <input type="text" id="packageInput" placeholder="Enter packages (space separated)">
+            <button onclick="installPackages()">Install Packages</button>
+            <button onclick="clearOutput()" class="clear-btn">Clear Output</button>
+        </div>
+        <div class="package-tip">
+            💡 Common available packages:
+            <span class="package-list">
+                numpy, pandas, matplotlib, requests, 
+                scikit-learn, sympy, pillow, lxml
+                <a href="https://pyodide.org/en/stable/usage/packages-in-pyodide.html" 
+                   target="_blank" class="more-packages">See more</a>
+            </span>
+        </div>
+        <textarea id="output" readonly></textarea>
+        <div class="intro-box">
+            <h2>🔍 Tool Description</h2>
+            <div class="intro-content">
+                <div class="intro-column">
+                    <h3>🎯 Core Features</h3>
+                    <ul>
+                        <li>WebAssembly-based Python runtime</li>
+                        <li>Python 3.10 standard syntax support</li>
+                        <li>Real-time code execution and feedback</li>
+                        <li>Dynamic third-party package management</li>
+                        <li>Browser-based sandbox environment</li>
+                    </ul>
+                </div>
+                
+                <div class="intro-column">
+                    <h3>📚 Technologies</h3>
+                    <ul>
+                        <li>Pyodide 0.25.0</li>
+                        <li>Emscripten 3.1.45</li>
+                        <li>WebAssembly 2.0</li>
+                        <li>Micropip package manager</li>
+                        <li>Interactive terminal emulation</li>
+                    </ul>
+                </div>
+                
+                <div class="intro-column">
+                    <h3>💡 Use Cases</h3>
+                    <ul>
+                        <li>Python teaching demonstrations</li>
+                        <li>Quick algorithm validation</li>
+                        <li>Data visualization preview</li>
+                        <li>API interface testing</li>
+                        <li>Small project prototyping</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="system-requirements">
+                <h3>⚙️ System Requirements</h3>
+                <p>Recommended: Chrome 100+ / Firefox 90+ / Edge 100+ or other modern browsers<br>
+                Requires at least 2MB/s internet connection (initial load downloads ~10MB)</p>
+            </div>
+        </div>
+        <div class="author-info">
+            Created by <span class="author-name">ikdxhz</span>
+        </div>
+        <div class="tool-links">
+            <a href="https://wz.ikdxhz.top" target="_blank" class="tool-btn">
+                🛠️ More Online Tools
+            </a>
+        </div>
+    </div>
+
+    <!-- Language switcher -->
+    <div class="lang-switcher">
+        <a href="index.html" class="lang-btn">
+            <span class="lang-icon">🇨🇳</span> 中文
+        </a>
+        <a href="#" class="lang-btn active-lang">
+            <span class="lang-icon">🇬🇧</span> English
+        </a>
+    </div>
+
+    <!-- Script section -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <script type="text/javascript">
+        // Language pack
+        const langPack = {
+            'zh': {
+                title: 'Python在线运行器',
+                placeholder: '输入Python代码...',
+                run: '运行代码',
+                install: '安装依赖',
+                clear: '清除输出',
+                exampleTip: '选择示例代码...',
+                packagePlaceholder: '输入要安装的包 (多个用空格分隔)',
+                // Other translations...
+            },
+            'en': {
+                title: 'Online Python Runner',
+                placeholder: 'Enter Python code...',
+                run: 'Run Code',
+                install: 'Install Packages',
+                clear: 'Clear Output',
+                exampleTip: 'Select example...',
+                packagePlaceholder: 'Enter packages (space-separated)',
+                // Other translations...
+            }
+        };
+
+        async function initialize() {
+            let output = document.getElementById('output');
+            try {
+                output.value = `[System] Initializing Python environment...\n`;
+                
+                window.pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/"
+                });
+                await pyodide.loadPackage("micropip");
+                
+                output.value += `[System] Environment ready!\n`;
+                output.value += `<div class="system-info">\n`;
+                output.value += `<h4>System Information:</h4>\n`;
+                output.value += `<div>🌐 Pyodide version: ${pyodide.version}</div>\n`;
+                output.value += `<div>📅 Initialization time: ${new Date().toLocaleString()}</div>\n`;
+                output.value += `<div>💾 Initial memory: ${(performance.memory.jsHeapSizeLimit / 1024 / 1024).toFixed(2)}MB</div>\n`;
+                output.value += `</div>\n`;
+                output.value += `\n💡 Pre-loaded packages: ${Array.from(pyodide.loadedPackages).join(', ')}`;
+            } catch (error) {
+                output.value = `[Error] Initialization failed: ${error}\n`;
+            }
+        }
+
+        function clearOutput() {
+            const output = document.getElementById('output');
+            output.value = '';
+            output.scrollTop = 0;
+        }
+
+        document.getElementById('editor').ondblclick = function() {
+            this.select();
+        };
+        document.getElementById('output').ondblclick = function() {
+            this.select();
+        };
+
+        async function runPython() {
+            const code = document.getElementById('editor').value;
+            const output = document.getElementById('output');
+            
+            try {
+                let buffer = [];
+                pyodide.setStdout({ batched: (text) => buffer.push(text) });
+                
+                await pyodide.runPythonAsync(code);
+                
+                if(buffer.length > 0) {
+                    output.value += buffer.join('') + '\n';
+                } else {
+                    output.value += 'Execution successful (no output)\n';
+                }
+                
+            } catch (error) {
+                output.value += `Error: ${error.message}\n`;
+            } finally {
+                output.value += '--- Execution completed ---\n\n';
+                output.scrollTop = output.scrollHeight;
+            }
+        }
+
+        async function installPackages() {
+            const packageInput = document.getElementById('packageInput').value;
+            const output = document.getElementById('output');
+            const installBtn = document.querySelector('.dependency-box button');
+            
+            if (!packageInput) {
+                output.value = "Please enter package names\n";
+                return;
+            }
+
+            const packages = packageInput.split(/[,\s]+/).filter(p => p);
+            
+            try {
+                installBtn.disabled = true;
+                installBtn.innerHTML = `<div class="loading-spinner"></div> Installing...`;
+                
+                output.value = `Installing packages: ${packages.join(', ')}\n`;
+                output.scrollTop = output.scrollHeight;
+
+                const micropip = pyodide.pyimport("micropip");
+                await micropip.install(packages);
+
+                output.value += `Packages installed successfully!\n`;
+                output.value += `<div style="margin-top:10px;color:#95a5a6;font-size:0.9em">\n`;
+                output.value += `✅ Installed: ${packages.join(', ')}\n`;
+                output.value += `Version: ${packages.map(p => {
+                    try {
+                        return pyodide.pyimport(p).__version__;
+                    } catch {
+                        return 'Unknown';
+                    }
+                }).join(', ')}\n`;
+                output.value += `</div>\n`;
+            } catch (error) {
+                output.value = `Installation failed: ${error}\n`;
+                output.value += `<div style="margin-top:10px;color:#95a5a6;font-size:0.9em">\n`;
+                output.value += `💡 Please check package names or network connection\n`;
+                output.value += `</div>\n`;
+            } finally {
+                installBtn.disabled = false;
+                installBtn.innerHTML = "Install Packages";
+                output.scrollTop = output.scrollHeight;
+            }
+        }
+
+        const examples = {
+            hello: `# Basic output example
+print("Hello, World!")`,
+
+            math: `# Basic arithmetic operations
+a = 15
+b = 4
+print(f"{a} + {b} = {a + b}")
+print(f"{a} - {b} = {a - b}")
+print(f"{a} × {b} = {a * b}")
+print(f"{a} ÷ {b} = {a / b} (2 decimal places: {a / b:.2f})")`,
+
+            fib: `# First 20 Fibonacci numbers
+def fib(n):
+    a, b = 0, 1
+    result = []
+    for _ in range(n):
+        result.append(a)
+        a, b = b, a + b
+    return result
+
+print("First 20 Fibonacci numbers:")
+print(fib(20))`,
+
+            prime: `# Prime number check example
+def is_prime(n):
+    if n < 2:
+        return False
+    for i in range(2, int(n**0.5)+1):
+        if n % i == 0:
+            return False
+    return True
+
+num = 37
+print(f"Is {num} a prime number? {is_prime(num)}")
+`
+        };
+
+        function loadExample() {
+            const select = document.getElementById('exampleSelect');
+            const editor = document.getElementById('editor');
+            const exampleKey = select.value;
+            
+            if (exampleKey && examples[exampleKey]) {
+                editor.value = examples[exampleKey];
+                editor.classList.add('example-loaded');
+                setTimeout(() => editor.classList.remove('example-loaded'), 300);
+            }
+        }
+
+        initialize();
+    </script>
+</body>
+</html> 
